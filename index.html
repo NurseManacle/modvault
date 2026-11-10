@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>modvault — Universal Mod Manager for Windows</title>
+<meta name="description" content="modvault is a universal mod manager: load, order, enable and hot-swap mods across games, with per-profile conflict resolution, modpack export/import, and both CLI + GUI.">
+<style>
+  :root{
+    --bg-0:#070a18;
+    --bg-1:#0d1230;
+    --bg-2:#141a3d;
+    --indigo:#5b6cff;
+    --violet:#8b5cf6;
+    --cyan:#22d3ee;
+    --text:#e8ecff;
+    --muted:#9aa4c9;
+    --line:rgba(140,160,255,0.16);
+    --card:rgba(20,26,61,0.55);
+    --glow:rgba(91,108,255,0.45);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 700px at 12% -10%, rgba(91,108,255,0.28), transparent 60%),
+      radial-gradient(1000px 620px at 92% 0%, rgba(139,92,246,0.24), transparent 62%),
+      radial-gradient(900px 700px at 50% 110%, rgba(34,211,238,0.14), transparent 60%),
+      linear-gradient(160deg, #070a18 0%, #0d1230 42%, #141a3d 72%, #0a0e22 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  a{color:inherit;text-decoration:none;}
+
+  .wrap{width:100%;max-width:1140px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:sticky;top:0;z-index:100;
+    backdrop-filter:blur(18px) saturate(160%);
+    -webkit-backdrop-filter:blur(18px) saturate(160%);
+    background:rgba(10,14,34,0.62);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    height:68px;gap:24px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-weight:800;font-size:1.18rem;letter-spacing:-0.02em;
+  }
+  .brand-mark{
+    width:30px;height:30px;border-radius:9px;
+    display:grid;place-items:center;font-size:0.95rem;
+    background:linear-gradient(140deg,var(--indigo),var(--violet));
+    box-shadow:0 0 18px var(--glow);
+  }
+  .brand span{
+    background:linear-gradient(90deg,#c9d3ff,#8b9bff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .nav-links{
+    display:flex;align-items:center;gap:30px;
+    font-size:0.93rem;color:var(--muted);font-weight:500;
+  }
+  .nav-links a{transition:color .18s ease;}
+  .nav-links a:hover{color:#fff;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-weight:650;font-size:0.95rem;letter-spacing:-0.01em;
+    padding:11px 22px;border-radius:11px;border:1px solid transparent;
+    cursor:pointer;transition:transform .16s ease, box-shadow .22s ease, background .2s ease, border-color .2s ease;
+    white-space:nowrap;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,var(--indigo),var(--violet));
+    color:#fff;
+    box-shadow:0 8px 26px -8px var(--glow), inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+  .btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 14px 34px -8px var(--glow), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .btn-ghost{
+    background:rgba(255,255,255,0.035);
+    border-color:rgba(150,170,255,0.28);
+    color:#dbe2ff;
+  }
+  .btn-ghost:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,0.075);
+    border-color:rgba(150,170,255,0.5);
+  }
+  .nav .btn{padding:9px 18px;font-size:0.9rem;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding:92px 0 74px;
+    text-align:center;
+    position:relative;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:9px;
+    padding:7px 16px;border-radius:999px;
+    font-size:0.8rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
+    color:#bfc9ff;
+    background:rgba(91,108,255,0.12);
+    border:1px solid rgba(120,140,255,0.32);
+    box-shadow:0 0 26px -8px var(--glow);
+    margin-bottom:26px;
+  }
+  .pill .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 10px var(--cyan);
+  }
+
+  h1{
+    font-size:clamp(2.15rem,5.6vw,4rem);
+    line-height:1.08;
+    letter-spacing:-0.035em;
+    font-weight:800;
+    margin-bottom:22px;
+  }
+  .grad-text{
+    background:linear-gradient(100deg,#ffffff 0%,#a9b6ff 40%,#8b5cf6 72%,#22d3ee 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  .hero p.lead{
+    max-width:660px;margin:0 auto 34px;
+    font-size:clamp(1rem,2.1vw,1.14rem);
+    color:var(--muted);
+  }
+
+  .hero-cta{
+    display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
+    margin-bottom:44px;
+  }
+  .hero-cta .btn{padding:14px 30px;font-size:1rem;border-radius:13px;}
+
+  .stats{
+    display:flex;justify-content:center;flex-wrap:wrap;gap:12px;
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 17px;border-radius:11px;
+    font-size:0.85rem;font-weight:550;color:#c3ccf2;
+    background:rgba(255,255,255,0.035);
+    border:1px solid var(--line);
+    backdrop-filter:blur(6px);
+  }
+  .chip strong{color:#fff;font-weight:700;}
+
+  /* ---------- SECTION SHELL ---------- */
+  section{padding:78px 0;position:relative;}
+  .sec-head{text-align:center;max-width:640px;margin:0 auto 52px;}
+  .sec-kicker{
+    font-size:0.78rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+    color:#7f8dff;margin-bottom:12px;
+  }
+  .sec-head h2{
+    font-size:clamp(1.6rem,3.6vw,2.35rem);
+    letter-spacing:-0.03em;font-weight:800;line-height:1.2;margin-bottom:14px;
+  }
+  .sec-head p{color:var(--muted);font-size:1rem;}
+
+  /* ---------- FEATURES ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+  }
+  .card{
+    position:relative;
+    padding:28px 26px 26px;
+    border-radius:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    backdrop-filter:blur(12px);
+    overflow:hidden;
+    transition:transform .22s ease, box-shadow .28s ease, border-color .28s ease, background .28s ease;
+  }
+  .card::before{
+    content:"";
+    position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--indigo),var(--violet),var(--cyan));
+    opacity:0.85;
+  }
+  .card:hover{
+    transform:translateY(-6px);
+    border-color:rgba(140,160,255,0.4);
+    background:rgba(28,35,78,0.7);
+    box-shadow:0 22px 46px -20px rgba(91,108,255,0.55);
+  }
+  .card .ico{
+    font-size:1.6rem;line-height:1;
+    width:50px;height:50px;border-radius:13px;
+    display:grid;place-items:center;
+    background:rgba(91,108,255,0.14);
+    border:1px solid rgba(120,140,255,0.22);
+    margin-bottom:18px;
+  }
+  .card h3{
+    font-size:1.06rem;font-weight:700;letter-spacing:-0.015em;margin-bottom:9px;
+  }
+  .card p{font-size:0.92rem;color:var(--muted);line-height:1.62;}
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{
+    position:relative;
+    max-width:760px;margin:0 auto;
+    display:flex;flex-direction:column;gap:34px;
+  }
+  .steps::before{
+    content:"";
+    position:absolute;
+    left:29px;top:14px;bottom:14px;width:2px;
+    background:linear-gradient(180deg,var(--indigo),var(--violet) 55%,transparent);
+    border-radius:2px;
+    opacity:0.7;
+  }
+  .step{
+    position:relative;
+    display:flex;gap:24px;align-items:flex-start;
+  }
+  .step-num{
+    flex:0 0 auto;
+    width:60px;height:60px;border-radius:50%;
+    display:grid;place-items:center;
+    font-weight:800;font-size:1.15rem;color:#fff;
+    background:linear-gradient(140deg,#1b2350,#121733);
+    border:1px solid rgba(130,150,255,0.4);
+    box-shadow:0 0 0 6px rgba(10,14,34,0.85), 0 0 26px -6px var(--glow);
+    z-index:1;
+  }
+  .step-body{
+    padding:6px 0 0;
+  }
+  .step-body h3{
+    font-size:1.1rem;font-weight:700;letter-spacing:-0.015em;margin-bottom:7px;
+  }
+  .step-body p{color:var(--muted);font-size:0.94rem;max-width:540px;}
+
+  /* ---------- FAQ ---------- */
+  .faq{
+    max-width:800px;margin:0 auto;
+    display:flex;flex-direction:column;gap:13px;
+  }
+  details{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    backdrop-filter:blur(10px);
+    overflow:hidden;
+    transition:border-color .22s ease, background .22s ease;
+  }
+  details[open]{
+    border-color:rgba(140,160,255,0.42);
+    background:rgba(28,35,78,0.68);
+  }
+  summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+    padding:19px 24px;
+    font-weight:650;font-size:1rem;letter-spacing:-0.01em;
+    user-select:none;
+    transition:color .18s ease;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary:hover{color:#fff;}
+  .plus{
+    flex:0 0 auto;
+    width:26px;height:26px;
+    display:grid;place-items:center;
+    font-size:1.3rem;font-weight:400;line-height:1;
+    color:#96a4e6;
+    transition:transform .26s ease, color .26s ease;
+  }
+  details[open] .plus{
+    transform:rotate(45deg);
+    color:var(--cyan);
+  }
+  .faq-answer{
+    padding:0 24px 21px;
+    color:var(--muted);
+    font-size:0.93rem;
+    line-height:1.68;
+    max-width:92%;
+  }
+
+  /* ---------- CTA BANNER ---------- */
+  .cta-section{padding:40px 0 90px;}
+  .cta-card{
+    position:relative;
+    overflow:hidden;
+    text-align:center;
+    padding:64px 32px;
+    border-radius:24px;
+    border:1px solid rgba(130,150,255,0.28);
+    background:
+      radial-gradient(600px 300px at 50% 0%, rgba(139,92,246,0.35), transparent 70%),
+      radial-gradient(500px 300px at 15% 100%, rgba(34,211,238,0.16), transparent 70%),
+      linear-gradient(150deg, rgba(24,30,66,0.9), rgba(12,16,38,0.92));
+    box-shadow:0 30px 80px -40px rgba(91,108,255,0.7);
+  }
+  .cta-card::after{
+    content:"";
+    position:absolute;
+    width:520px;height:520px;
+    left:50%;top:-40%;
+    transform:translateX(-50%);
+    background:radial-gradient(circle, rgba(91,108,255,0.35), transparent 62%);
+    pointer-events:none;
+  }
+  .cta-card h2{
+    position:relative;
+    font-size:clamp(1.7rem,4vw,2.6rem);
+    letter-spacing:-0.035em;font-weight:800;line-height:1.15;
+    margin-bottom:16px;
+  }
+  .cta-card p{
+    position:relative;
+    color:var(--muted);
+    max-width:520px;margin:0 auto 30px;
+    font-size:1rem;
+  }
+  .cta-card .btn{
+    position:relative;
+    padding:15px 38px;font-size:1.02rem;border-radius:13px;
+  }
+  .cta-note{
+    position:relative;
+    margin-top:18px;
+    font-size:0.82rem;color:#7f8ac2;
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--line);
+    padding:34px 0;
+    background:rgba(7,10,24,0.55);
+    backdrop-filter:blur(10px);
+  }
+  .foot-inner{
+    display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    font-size:0.88rem;color:var(--muted);
+  }
+  .foot-brand{
+    display:flex;align-items:center;gap:9px;font-weight:700;color:#dfe5ff;
+  }
+  .foot-brand .brand-mark{width:24px;height:24px;border-radius:7px;font-size:0.78rem;}
+  .foot-links{display:flex;gap:22px;align-items:center;}
+  .foot-links a{transition:color .18s ease;}
+  .foot-links a:hover{color:#fff;}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:920px){
+    .grid{grid-template-columns:repeat(2,1fr);}
+  }
+
+  @media (max-width:640px){
+    .nav-links{display:none;}
+    .nav-inner{height:62px;}
+    .hero{padding:64px 0 54px;}
+    section{padding:58px 0;}
+    .grid{grid-template-columns:1fr;gap:16px;}
+    .steps::before{left:23px;}
+    .step-num{width:48px;height:48px;font-size:1rem;}
+    .step{gap:18px;}
+    .hero-cta{flex-direction:column;align-items:stretch;}
+    .hero-cta .btn{width:100%;}
+    .stats{gap:9px;}
+    .chip{font-size:0.8rem;padding:8px 13px;}
+    .cta-card{padding:48px 22px;border-radius:18px;}
+    .cta-section{padding:20px 0 64px;}
+    .faq-answer{max-width:100%;}
+    .foot-inner{flex-direction:column;text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark">🗄️</span>
+        <span>modvault</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn btn-primary" href="https://gitscore.cc">Download</a>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="pill"><span class="dot"></span>Universal Mod Manager</div>
+
+        <h1>
+          One vault for <span class="grad-text">every mod,<br>every game.</span>
+        </h1>
+
+        <p class="lead">
+          modvault loads, orders, enables and hot-swaps mods across all your games from a single
+          place. Per-profile conflict resolution, instant modpack export/import, and a full CLI
+          alongside a polished GUI — built for Windows 10 and 11.
+        </p>
+
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="https://gitscore.cc">⬇ Download for Windows</a>
+          <a class="btn btn-ghost" href="https://gitscore.cc">★ View on GitHub</a>
+        </div>
+
+        <div class="stats">
+          <div class="chip"><strong>48,000+</strong> downloads</div>
+          <div class="chip">v<strong>2.4.1</strong></div>
+          <div class="chip">🪟 Windows 10 / 11</div>
+          <div class="chip">Free &amp; open source</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section id="features">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-kicker">Features</div>
+          <h2>Everything a modder needs, in one vault</h2>
+          <p>Built from the ground up for people who run dozens of mods across a dozen games.</p>
+        </div>
+
+        <div class="grid">
+          <article class="card">
+            <div class="ico">📦</div>
+            <h3>Load &amp; order with precision</h3>
+            <p>Drag-and-drop load order with dependency awareness. modvault validates every plugin and flags missing masters before your game ever launches.</p>
+          </article>
+
+          <article class="card">
+            <div class="ico">🔁</div>
+            <h3>Hot-swap without restarts</h3>
+            <p>Toggle mods on and off live and let modvault re-stage the game directory instantly — no manual file juggling, no reinstall cycles.</p>
+          </article>
+
+          <article class="card">
+            <div class="ico">🧩</div>
+            <h3>Per-profile conflict resolution</h3>
+            <p>Every profile keeps its own conflict map. See exactly which files collide, pick winners per profile, and keep separate setups side by side.</p>
+          </article>
+
+          <article class="card">
+            <div class="ico">🎒</div>
+            <h3>Modpack export &amp; import</h3>
+            <p>Bundle your entire load order, configs and conflict rules into a single modpack file. Share it, or import someone else's setup in one click.</p>
+          </article>
+
+          <article class="card">
+            <div class="ico">⌨️</div>
+            <h3>CLI + GUI, same engine</h3>
+            <p>Automate with a scriptable command-line interface or use the desktop GUI — both drive the same core, so your profiles stay perfectly in sync.</p>
+          </article>
+
+          <article class="card">
+            <div class="ico">🛡️</div>
+            <h3>Non-destructive by design</h3>
+            <p>modvault stages and virtualizes changes instead of overwriting originals. Roll back any profile to a clean state at any moment.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section id="how">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-kicker">How it works</div>
+          <h2>From download to playing in three steps</h2>
+          <p>No dependencies to hunt down, no config files to hand-edit.</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Point modvault at your games</h3>
+              <p>On first launch, modvault auto-detects supported game installs. Confirm the folders, or add any game manually — it remembers every path per profile.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Load, order and resolve conflicts</h3>
+              <p>Drop in your mods and arrange the load order. modvault scans for file collisions and missing masters, then lets you choose winners per profile.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Enable, hot-swap and play</h3>
+              <p>Hit enable and modvault stages everything into place. Swap mods mid-session, export the setup as a modpack, or script the whole flow via CLI.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq">
+      <div class="wrap">
+        <div class="sec-head">
+          <div class="sec-kicker">FAQ</div>
+          <h2>Questions, answered</h2>
+          <p>Everything you might want to know before installing modvault.</p>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary>Which games does modvault support?<span class="plus">+</span></summary>
+            <div class="faq-answer">
+              modvault is game-agnostic. It ships with built-in profiles for popular modding titles and lets you register any game folder manually, so the load-order, conflict-resolution and modpack tools work across your whole library.
+            </div>
+          </details>
+
+          <details>
+            <summary>Is it really free and open source?<span class="plus">+</span></summary>
+            <div class="faq-answer">
+              Yes. modvault is free to download and use, and the full source is available on GitHub. There are no premium tiers, no mod-count limits and no telemetry — just the universal mod manager and its CLI.
+            </div>
+          </details>
+
+          <details>
+            <summary>Will hot-swapping break my game saves?<span class="plus">+</span></summary>
+            <div class="faq-answer">
+              modvault never overwrites your originals — it stages changes and virtualizes the game directory. If you toggle a mod off, the staged files are reverted instantly. As always, keep a backup of important saves before changing load orders mid-playthrough.
+            </div>
+          </details>
+
+          <details>
+            <summary>Can
